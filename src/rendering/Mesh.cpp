@@ -127,7 +127,7 @@ bool Mesh::loadOBJ(const std::string& filename)
 
 					if (data[0].size() > 0)
 					{
-						sscanf_s(data[0].c_str(), "%d", &vertexIndex);
+						sscanf(data[0].c_str(), "%d", &vertexIndex);
 						vertexIndices.push_back(vertexIndex);
 					}
 
@@ -137,7 +137,7 @@ bool Mesh::loadOBJ(const std::string& filename)
 						// this vertex has no texture coordinate
 						if (data[1].size() > 0)
 						{
-							sscanf_s(data[1].c_str(), "%d", &uvIndex);
+							sscanf(data[1].c_str(), "%d", &uvIndex);
 							uvIndices.push_back(uvIndex);
 						}
 					}
@@ -147,7 +147,7 @@ bool Mesh::loadOBJ(const std::string& filename)
 						// Does this vertex have a normal?
 						if (data[2].size() > 0)
 						{
-							sscanf_s(data[2].c_str(), "%d", &normalIndex);
+							sscanf(data[2].c_str(), "%d", &normalIndex);
 							normalIndices.push_back(normalIndex);
 						}
 					}
