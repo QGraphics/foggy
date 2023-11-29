@@ -9,6 +9,7 @@
 #include "glm/glm.hpp"
 #include <string>
 #include <map>
+#include <vector>
 
 using namespace std;
 
@@ -19,6 +20,7 @@ public:
 
     bool loadTexture(const string &filename, bool generateMipMaps = true);
     void bind(GLuint texUnit = 0);
+    unsigned int loadCubemap(vector <std::string> faces);
 //    void unbind(GLuint texUnit = 0);
 
 private:

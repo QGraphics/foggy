@@ -69,6 +69,149 @@ int main() {
         return -1;
     }
 
+    // configure global opengl state
+    // -----------------------------
+    glEnable(GL_DEPTH_TEST);
+
+    // build and compile shaders
+    // -------------------------
+    ShaderProgram CubeMapShader;
+    CubeMapShader.loadShaders("../assets/shaders/cubemap.vert", "../assets/shaders/cubemap.frag");
+    ShaderProgram skyboxShader;
+    skyboxShader.loadShaders("../assets/shaders/skybox.vert", "../assets/shaders/skybox.frag");
+
+    float cubeVertices[] = {
+            // positions          // normals
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+            0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+            -0.5f, 0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+            -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
+
+            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+            -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+            -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,
+
+            -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+            -0.5f, 0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
+            -0.5f, -0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+            -0.5f, 0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+
+            0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+            0.5f, 0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+            0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+
+            -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
+            0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
+            0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
+            -0.5f, -0.5f, 0.5f, 0.0f, -1.0f, 0.0f,
+            -0.5f, -0.5f, -0.5f, 0.0f, -1.0f, 0.0f,
+
+            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+            -0.5f, 0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+            -0.5f, 0.5f, -0.5f, 0.0f, 1.0f, 0.0f
+    };
+    float skyboxVertices[] = {
+            // positions
+            -1.0f, 1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, 1.0f, -1.0f,
+            -1.0f, 1.0f, -1.0f,
+
+            -1.0f, -1.0f, 1.0f,
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, 1.0f, -1.0f,
+            -1.0f, 1.0f, -1.0f,
+            -1.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, 1.0f,
+
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+
+            -1.0f, -1.0f, 1.0f,
+            -1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f, -1.0f, 1.0f,
+            -1.0f, -1.0f, 1.0f,
+
+            -1.0f, 1.0f, -1.0f,
+            1.0f, 1.0f, -1.0f,
+            1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
+            -1.0f, 1.0f, 1.0f,
+            -1.0f, 1.0f, -1.0f,
+
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f, 1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f, 1.0f,
+            1.0f, -1.0f, 1.0f
+    };
+
+    // cube VAO
+    unsigned int cubeVAO, cubeVBO;
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    glBindVertexArray(cubeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) (3 * sizeof(float)));
+    // skybox VAO
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
+
+    // load textures
+    // -------------
+    vector<std::string> faces
+            {
+                    "../assets/textures/skybox/right.jpg",
+                    "../assets/textures/skybox/left.jpg",
+                    "../assets/textures/skybox/top.jpg",
+                    "../assets/textures/skybox/bottom.jpg",
+                    "../assets/textures/skybox/back.jpg",
+                    "../assets/textures/skybox/front.jpg"
+            };
+    Texture cubeTexture;
+    unsigned int cubemapTexture = cubeTexture.loadCubemap(faces);
+
+    // shader configuration
+    // --------------------
+    CubeMapShader.use();
+    glUniform1i(glGetUniformLocation(CubeMapShader.getProgram(), "skybox"), 0);
+
+    skyboxShader.use();
+    glUniform1i(glGetUniformLocation(skyboxShader.getProgram(), "skybox"), 0);
+
     // Set up our quad
     // 1. Set up an array of vertices for a quad (2 triangls) with an index buffer data
     //   (What is a vertex?)
@@ -149,11 +292,11 @@ int main() {
 
     //call shaders
     ShaderProgram shaderProgram;
-    shaderProgram.loadShaders("assets/shaders/transform.vert", "assets/shaders/transform.frag");
+    shaderProgram.loadShaders("../assets/shaders/transform.vert", "../assets/shaders/transform.frag");
 
     //****** Texture ******
     Texture texture1;
-    texture1.loadTexture("assets/images/cubeTest.jpg", true);
+    texture1.loadTexture("../assets/images/cubeTest.jpg", true);
 
 //    Texture floorTexture;
 //    floorTexture.loadTexture(floorImage, true);
@@ -257,6 +400,35 @@ int main() {
 //        transform = glm::rotate(transform, glm::radians(cubeAngle), glm::vec3(1.0f, 1.0f, 0.0f));
 //        shaderProgram.setUniform("transform", transform);
 
+        // draw scene as normal
+        CubeMapShader.use();
+        CubeMapShader.setUniform("model", model);
+        CubeMapShader.setUniform("view", view);
+        CubeMapShader.setUniform("projection", projection);
+        CubeMapShader.setUniform("cameraPos", fpsCamera.getPosition());
+        // cubes
+        glBindVertexArray(cubeVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+
+        // draw skybox as last
+        glDepthFunc(
+                GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        skyboxShader.use();
+        view = glm::mat4(glm::mat3(fpsCamera.getViewMatrix())); // remove translation from the view matrix
+        skyboxShader.setUniform("view", view);
+        skyboxShader.setUniform("projection", projection);
+        // skybox cube
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS); // set depth function back to default
+
+
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -272,7 +444,13 @@ int main() {
         lastTime = currentTime;
     }
 
-    // Clean up
+    // optional: de-allocate all resources once they've outlived their purpose:
+    // ------------------------------------------------------------------------
+    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteVertexArrays(1, &skyboxVAO);
+    glDeleteBuffers(1, &cubeVBO);
+    glDeleteBuffers(1, &skyboxVBO);
+
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
 
@@ -339,7 +517,7 @@ void glfw_onKey(GLFWwindow *window, int key, int scancode, int action, int mode)
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
 
-    if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_F && action == GLFW_PRESS) {
         gWireframe = !gWireframe;
         if (gWireframe)
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -361,7 +539,7 @@ void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY) {
     fpsCamera.setFOV((float) fov);
 }
 
-void update(double elapseTime) {
+void update(double elapsedTime) {
     //camer orientation
     double mouseX, mouseY;
 
@@ -376,21 +554,21 @@ void update(double elapseTime) {
 
     //camera move forwad backword
     if (glfwGetKey(gWindow, GLFW_KEY_W) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapseTime * fpsCamera.getLook());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * fpsCamera.getLook());
     else if (glfwGetKey(gWindow, GLFW_KEY_S) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapseTime * -fpsCamera.getLook());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -fpsCamera.getLook());
 
     //left right
     if (glfwGetKey(gWindow, GLFW_KEY_A) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapseTime * -fpsCamera.getRight());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -fpsCamera.getRight());
     else if (glfwGetKey(gWindow, GLFW_KEY_D) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapseTime * fpsCamera.getRight());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * fpsCamera.getRight());
 
     //up down
     if (glfwGetKey(gWindow, GLFW_KEY_Z) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapseTime * fpsCamera.getUp());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * fpsCamera.getUp());
     else if (glfwGetKey(gWindow, GLFW_KEY_X) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapseTime * -fpsCamera.getUp());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -fpsCamera.getUp());
 }
 
 //-----------------------------------------------------------------------------
