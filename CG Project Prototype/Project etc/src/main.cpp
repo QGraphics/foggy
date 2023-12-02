@@ -41,10 +41,16 @@ float minSize = 0.1f;
 //const std::string floorImage = "res/images/cubeTest.jpg";
 
 //setting up the camera
-FPSCamera fpsCamera(glm::vec3(0.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+FPSCamera fpsCamera(glm::vec3(0.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 const double ZOOM_SENSITIVITY = -3.0f;
 const float MOVE_SPEED = 5.0f; //units per second
 const float MOUSE_SENSETIVITY = 0.1f;
+
+glm::mat4 projection(1.0f), view(1.0f), model(1.0f);
+glm::vec3 cursorPos(0.0f, 0.0f, 0.0f); // This isn't the mouse cursor, but rather a mesh used as a cursor
+Mesh plane;
+float cursorStrength = 1.0f;
+float PLANE_WIDTH = 20.0f;
 
 // Function prototypes
 void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY);
@@ -54,6 +60,9 @@ void update(double elapsedTime);
 void glfw_onKey(GLFWwindow *window, int key, int scancode, int action, int mode);
 
 void glfw_onFramebufferSize(GLFWwindow *window, int width, int height);
+
+// Source: https://antongerdelan.net/opengl/raycasting.html
+//void glfw_on_mouse_click(int b, int s, int mouse_x, int mouse_y);
 
 void showFPS(GLFWwindow *window);
 
@@ -170,9 +179,14 @@ int main() {
 			1.0f, -1.0f, 1.0f
 	};
 
-	// Create the Plane
-	Mesh plane;
-	plane.generatePlane(2, 10.0f);
+	// Generate the Plane
+	plane.generatePlane(100, PLANE_WIDTH);
+
+	//Create the cursor
+	Mesh cursor;
+	cursor.loadOBJ("res/models/cylinder.obj");
+	Texture cursorTex;
+	cursorTex.loadTexture("res/images/cubeTest.jpg");
 
 	// cube VAO
 	unsigned int cubeVAO, cubeVBO;
@@ -245,9 +259,6 @@ int main() {
 		// Render the quad (two triangles)
 		shaderProgram.use();
 
-		//add transformation
-		glm::mat4 projection(1.0f), view(1.0f), model(1.0f);
-
 		//Create the view matrix
 		view = fpsCamera.getViewMatrix();
 
@@ -255,15 +266,25 @@ int main() {
 		projection = glm::perspective(glm::radians(fpsCamera.getFOV()), (float) gWindowWidth / (float) gWindowHeight,
 									  0.1f, 100.0f);
 
+		model = glm::mat4(1.0f);
+
 		//pass the matrices to the shader
 		shaderProgram.setUniform("model", model);
 		shaderProgram.setUniform("view", view);
 		shaderProgram.setUniform("projection", projection);
 
 		//bind texture
-		texture1.bind(1);
+		texture1.bind(0);
 		plane.draw();
-		texture1.unbind(1);
+		texture1.unbind(0);
+
+		model = glm::translate(glm::mat4(1.0f), cursorPos) * glm::scale(glm::mat4(1.0f), glm::vec3(cursorStrength / 10, 10.0f, cursorStrength / 10));
+
+		shaderProgram.setUniform("model", model);
+
+		cursorTex.bind(0);
+		cursor.draw();
+		cursorTex.unbind(0);
 
 		// draw skybox as last
 		glDepthFunc(
@@ -277,6 +298,7 @@ int main() {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		/**/
 
 		glBindVertexArray(0);
@@ -374,29 +396,29 @@ void glfw_onFramebufferSize(GLFWwindow *window, int width, int height) {
 }
 
 void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY) {
-	double fov = fpsCamera.getFOV() + deltaY * ZOOM_SENSITIVITY;
-	fov = glm::clamp(fov, 1.0, 120.0);
-	fpsCamera.setFOV((float) fov);
+	float curStr = cursorStrength + deltaY * 0.1;
+
+	cursorStrength = glm::clamp(curStr, 0.5f, 5.0f);
 }
 
 void update(double elapsedTime) {
-	//camer orientation
+	//camera orientation
 	double mouseX, mouseY;
 
 	//get current mouse cursor position delta
+
 	glfwGetCursorPos(gWindow, &mouseX, &mouseY);
 
-	if (glfwGetKey(gWindow, GLFW_KEY_R) == GLFW_PRESS) {
-		//rotate the camera using the dlta in mouse differences
-		fpsCamera.rotate(
-			float(gWindowWidth / 2.0f - mouseX) * MOUSE_SENSETIVITY,
-			float(gWindowHeight / 2.0f - mouseY) * MOUSE_SENSETIVITY
-		);
-
-		glfwSetCursorPos(gWindow, gWindowWidth / 2.0, gWindowHeight / 2.0);
+	if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+	{
+		plane.modify(cursorPos, cursorStrength * (float) elapsedTime);
+	}
+	else if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	{
+		plane.modify(cursorPos, cursorStrength * (float)elapsedTime, false);
 	}
 
-	if (glfwGetKey(gWindow, GLFW_KEY_G) == GLFW_PRESS) {
+	if (glfwGetKey(gWindow, GLFW_KEY_R) == GLFW_PRESS) {
 		//rotate the camera using the dlta in mouse differences
 		fpsCamera.rotate(
 			float(gWindowWidth / 2.0f - mouseX) * MOUSE_SENSETIVITY,
@@ -411,6 +433,20 @@ void update(double elapsedTime) {
 		flatLook(fpsCamera.getLook().x, 0.0, fpsCamera.getLook().z),
 		flatRight(fpsCamera.getRight().x, 0.0, fpsCamera.getRight().z)
 	;
+
+	if (glfwGetKey(gWindow, GLFW_KEY_LEFT) == GLFW_PRESS) {
+		cursorPos -= (float)elapsedTime * flatRight;
+	}
+	else if (glfwGetKey(gWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+		cursorPos += (float)elapsedTime * flatRight;
+	}
+
+	if (glfwGetKey(gWindow, GLFW_KEY_UP) == GLFW_PRESS) {
+		cursorPos += (float)elapsedTime * flatLook;
+	}
+	else if (glfwGetKey(gWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
+		cursorPos -= (float)elapsedTime * flatLook;
+	}
 
 	//camera move forwad backword
 	if (glfwGetKey(gWindow, GLFW_KEY_W) == GLFW_PRESS)

@@ -324,20 +324,20 @@ std::vector<GLuint> Mesh::getPlaneIds(int div)
 	return indices;
 }
 
-void Mesh::modify(glm::vec3 position, float strength)
+void Mesh::modify(glm::vec3 position, float strength, bool up)
 {
+	int sign = (up) ? 1 : -1;
+
 	for (int i = 0; i < mVertices.size(); i++)
 	{
-		std::cout <<
-			"x: " << mVertices.at(i).position.x << 
-			"y: " << mVertices.at(i).position.y <<
-			"z: " << mVertices.at(i).position.z <<
-		std::endl;
+		float distance = glm::length(glm::vec3(mVertices[i].position.x, 0.0f, mVertices[i].position.z) - position);
+		
+		if (distance < 5)
+		{
+			mVertices[i].position.y += sign * strength * gaussian(distance, 1) / 10;
+			//std::cout << mVertices[i].position.y << std::endl;
+		}
 	}
-}
 
-static float gaussian(float x)
-{
-	return 0;
+	initBuffers();
 }
-

@@ -31,6 +31,8 @@ bool Texture::loadTexture(const string &filename, bool generateMipMaps) {
 
     //using stb
     int width, height, bitDepth;
+    //Load image
+    stbi_set_flip_vertically_on_load(true);
     unsigned char *texData = stbi_load(filename.c_str(), &width, &height, &bitDepth, 0);
     //catch error
     if (!texData) {

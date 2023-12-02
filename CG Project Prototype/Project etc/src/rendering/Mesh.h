@@ -29,7 +29,7 @@ public:
 	~Mesh();
 
 	bool loadOBJ(const std::string& filename);
-	void modify(glm::vec3 position, float strength);
+	void modify(glm::vec3 position, float strength, bool up = true);
 	void generatePlane(int div, float width);
 	void draw();
 
@@ -37,6 +37,10 @@ private:
 
 	void initBuffers();
 	std::vector<GLuint> getPlaneIds(int div);
+	static float gaussian(float x, float strength)
+	{
+		return expf(-powf(x, 2) * strength);
+	}
 
 	bool mLoaded;
 	std::vector<Vertex> mVertices;
