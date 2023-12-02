@@ -1,0 +1,8 @@
+﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(517,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  blinnPhongShading.cpp
+C:\Users\merve\source\repos\CG Project Prototype\CG Project Prototype\src\Celestial.h(70,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\merve\source\repos\CG Project Prototype\CG Project Prototype\src\blinnPhongShading.cpp(125,33): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\merve\source\repos\CG Project Prototype\CG Project Prototype\src\blinnPhongShading.cpp(126,33): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\merve\source\repos\CG Project Prototype\CG Project Prototype\src\blinnPhongShading.cpp(127,33): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\merve\source\repos\CG Project Prototype\CG Project Prototype\src\blinnPhongShading.cpp(128,33): warning C4305: 'argument': truncation from 'double' to 'float'
+  CG Project Prototype.vcxproj -> C:\Users\merve\source\repos\CG Project Prototype\CG Project Prototype\bin\CG Project Prototype.exe
