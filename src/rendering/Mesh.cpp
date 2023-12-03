@@ -215,12 +215,12 @@ void Mesh::initBuffers()
 	glEnableVertexAttribArray(0);
 
 	// Normals attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(3 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
 
 	// Vertex Texture Coords
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(6 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(6 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
 	
 	// unbind to make sure other code does not change it somewhere else
 	glBindVertexArray(0);
@@ -233,8 +233,111 @@ void Mesh::draw()
 {
 	if (!mLoaded) return;
 
+	//std::cout << "lol" << std::endl;
 	glBindVertexArray(mVAO);
 	glDrawArrays(GL_TRIANGLES, 0, mVertices.size());
 	glBindVertexArray(0);
 }
 
+
+// Source: https://www.youtube.com/watch?v=FKLbihqDLsg
+void Mesh::generatePlane(int div, float width)
+{
+	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
+	std::vector<glm::vec3> tempVertices;
+	std::vector<glm::vec2> tempUVs;
+	std::vector<glm::vec3> tempNormals;
+
+	float triangleSide = width / div;
+
+	for (int row = 0; row <= div; row++)
+	{
+		for (int col = 0; col <= div; col++)
+		{
+			glm::vec3 currentVert = glm::vec3(col * triangleSide - width / 2, 0.0f, row * -triangleSide + width / 2);
+
+			tempVertices.push_back(currentVert);
+			tempNormals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+			tempUVs.push_back(
+				glm::vec2(col * triangleSide / width, row * -triangleSide / width)
+			);
+		}
+	}
+
+	vertexIndices = getPlaneIds(div);
+
+	// For each vertex of each triangle
+	for (unsigned int i = 0; i < vertexIndices.size(); i++)
+	{
+		Vertex meshVertex;
+
+		// Get the attributes using the indices
+
+		if (tempVertices.size() > 0)
+		{
+			glm::vec3 vertex = tempVertices[vertexIndices[i]];
+			meshVertex.position = vertex;
+		}
+
+		if (tempNormals.size() > 0)
+		{
+			glm::vec3 normal = tempNormals[vertexIndices[i]];
+			meshVertex.normal = normal;
+		}
+
+		if (tempUVs.size() > 0)
+		{
+			glm::vec2 uv = tempUVs[vertexIndices[i]];
+			meshVertex.texCoords = uv;
+		}
+
+		mVertices.push_back(meshVertex);
+	}
+
+	initBuffers();
+
+	mLoaded = true;
+}
+
+std::vector<GLuint> Mesh::getPlaneIds(int div)
+{
+	std::vector<GLuint> indices;
+
+	for (int row = 0; row < div; row++)
+	{
+		for (int col = 0; col < div; col++)
+		{
+			int index = row * (div + 1) + col;
+
+			// Top Tri
+			indices.push_back(index);
+			indices.push_back(index + div + 2);
+			indices.push_back(index + div + 1);
+
+			// Bottom Tri
+			indices.push_back(index);
+			indices.push_back(index + 1);
+			indices.push_back(index + div + 2);
+		}
+	}
+
+	return indices;
+}
+
+void Mesh::modify(glm::vec3 position, float strength, bool up)
+{
+	int sign = (up) ? 1 : -1;
+
+	for (int i = 0; i < mVertices.size(); i++)
+	{
+		float distance = glm::length(glm::vec3(mVertices[i].position.x, 0.0f, mVertices[i].position.z) - position);
+		
+		if (distance < 5)
+		{
+			mVertices[i].position.y += sign * strength * gaussian(distance, 1) / 10;
+			//std::cout << mVertices[i].position.y << std::endl;
+		}
+	}
+
+	initBuffers();
+}

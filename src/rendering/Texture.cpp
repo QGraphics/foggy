@@ -29,18 +29,10 @@ bool Texture::loadTexture(const string &filename, bool generateMipMaps) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     //load image
 
-    //using soil
-
-//    int width, height;
-//    unsigned char *image = SOIL_load_image("../res/img/bricks.jpg", &width, &height, 0, SOIL_LOAD_RGB);
-//    //generate texture
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-//    glGenerateMipmap(GL_TEXTURE_2D);
-//    SOIL_free_image_data(image);
-//    glBindTexture(GL_TEXTURE_2D, 0);
-
     //using stb
     int width, height, bitDepth;
+    //Load image
+    stbi_set_flip_vertically_on_load(true);
     unsigned char *texData = stbi_load(filename.c_str(), &width, &height, &bitDepth, 0);
     //catch error
     if (!texData) {
@@ -69,6 +61,12 @@ bool Texture::loadTexture(const string &filename, bool generateMipMaps) {
 void Texture::bind(GLuint texUnit) {
     glActiveTexture(GL_TEXTURE0 + texUnit);
     glBindTexture(GL_TEXTURE_2D, mTexture);
+}
+
+void Texture::unbind(GLuint texUnit)
+{
+    glActiveTexture(GL_TEXTURE0 + texUnit);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 unsigned int Texture::loadCubemap(vector <std::string> faces) {

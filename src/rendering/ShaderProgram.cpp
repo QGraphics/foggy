@@ -7,7 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <glm/gtc/type_ptr.hpp>
+#include "glm/gtc/type_ptr.hpp"
 
 //-----------------------------------------------------------------------------
 // Constructor

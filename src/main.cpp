@@ -1,6 +1,7 @@
 //-----------------------------------------------------------------------------
 #include <iostream>
 #include <sstream>
+#include<unistd.h>
 
 #define GLEW_STATIC
 
@@ -13,6 +14,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "rendering/Camera.h"
+#include "rendering/Mesh.h"
 
 // Global Variables
 const char *APP_TITLE = "Computer Graphics";
@@ -39,11 +41,21 @@ float minSize = 0.1f;
 //textures
 //const std::string floorImage = "res/images/cubeTest.jpg";
 
+bool rayCast = false;
+bool mKeyWasPressed = false;
+
+
 //setting up the camera
-FPSCamera fpsCamera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+FPSCamera fpsCamera(glm::vec3(0.0f, 5.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 const double ZOOM_SENSITIVITY = -3.0f;
 const float MOVE_SPEED = 5.0f; //units per second
 const float MOUSE_SENSETIVITY = 0.1f;
+
+glm::mat4 projection(1.0f), view(1.0f), model(1.0f);
+glm::vec3 cursorPos(0.0f, 0.0f, 0.0f); // This isn't the mouse cursor, but rather a mesh used as a cursor
+Mesh plane;
+float cursorStrength = 1.0f;
+float PLANE_WIDTH = 60.0f;
 
 // Function prototypes
 void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY);
@@ -53,6 +65,9 @@ void update(double elapsedTime);
 void glfw_onKey(GLFWwindow *window, int key, int scancode, int action, int mode);
 
 void glfw_onFramebufferSize(GLFWwindow *window, int width, int height);
+
+// Source: https://antongerdelan.net/opengl/raycasting.html
+//void glfw_on_mouse_click(int b/home/mohammed/CLionProjects/RayCastTest/../assets/images, int s, int mouse_x, int mouse_y);
 
 void showFPS(GLFWwindow *window);
 
@@ -169,6 +184,15 @@ int main() {
             1.0f, -1.0f, 1.0f
     };
 
+    // Generate the Plane
+    plane.generatePlane(100, PLANE_WIDTH);
+
+    //Create the cursor
+    Mesh cursor;
+    cursor.loadOBJ("../assets/models/cylinder.obj");
+    Texture cursorTex;
+    cursorTex.loadTexture("../assets/images/cubeTest.jpg");
+
     // cube VAO
     unsigned int cubeVAO, cubeVBO;
     glGenVertexArrays(1, &cubeVAO);
@@ -196,11 +220,12 @@ int main() {
             {
                     "../assets/textures/skybox/right.jpg",
                     "../assets/textures/skybox/left.jpg",
-                    "../assets/textures/skybox/top.jpg",
                     "../assets/textures/skybox/bottom.jpg",
+                    "../assets/textures/skybox/top.jpg",
                     "../assets/textures/skybox/back.jpg",
                     "../assets/textures/skybox/front.jpg"
             };
+
     Texture cubeTexture;
     unsigned int cubemapTexture = cubeTexture.loadCubemap(faces);
 
@@ -212,97 +237,15 @@ int main() {
     skyboxShader.use();
     glUniform1i(glGetUniformLocation(skyboxShader.getProgram(), "skybox"), 0);
 
-    // Set up our quad
-    // 1. Set up an array of vertices for a quad (2 triangls) with an index buffer data
-    //   (What is a vertex?)
-    GLfloat vertices[] = {
-            // position		 // tex coords
-
-            // front face
-            -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-
-            // back face
-            -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
-            1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
-
-            // left face
-            -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-            -1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-            -1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-
-            // right face
-            1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
-
-            // top face
-            -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f, -1.0f, 0.0f, 1.0f,
-            -1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-            1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-
-            // bottom face
-            -1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
-            1.0f, -1.0f, 1.0f, 1.0f, 1.0f,
-            -1.0f, -1.0f, 1.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-            1.0f, -1.0f, -1.0f, 1.0f, 0.0f,
-    };
-
-    glm::vec3 cubePos = glm::vec3(-0.0f, -0.0f, 0.5f);
-//    glm::vec3 floorPos = glm::vec3(0.0f, -1.0f, 0.0f);
-
-
-    // 2. Set up buffers on the GPU
-    GLuint vbo, vao;
-
-    glGenBuffers(1, &vbo);                    // Generate an empty vertex buffer on the GPU
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);        // "bind" or set as the current buffer we are working with
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);    // copy the data from CPU to GPU
-
-    glGenVertexArrays(1, &vao);                // Tell OpenGL to create new Vertex Array Object
-    glBindVertexArray(vao);                    // Make it the current one
-
-    //position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                          NULL);    // Define a layout for the first vertex buffer "0"
-    glEnableVertexAttribArray(0);            // Enable the first attribute or attribute "0"
-    //texture
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                          (GLvoid *) (3 * sizeof(float)));    // Define a layout for the first vertex buffer "0"
-    glEnableVertexAttribArray(1);            // Enable the second attribute or attribute "1"
-
     //call shaders
     ShaderProgram shaderProgram;
     shaderProgram.loadShaders("../assets/shaders/transform.vert", "../assets/shaders/transform.frag");
 
     //****** Texture ******
     Texture texture1;
-    texture1.loadTexture("../assets/images/cubeTest.jpg", true);
-
-//    Texture floorTexture;
-//    floorTexture.loadTexture(floorImage, true);
+    texture1.loadTexture("../assets/images/floortext.jpg", true);
 
     double lastTime = glfwGetTime();
-    float cubeAngle = 0.0f;
 
     // Rendering loop
     while (!glfwWindowShouldClose(gWindow)) {
@@ -321,102 +264,40 @@ int main() {
         // Render the quad (two triangles)
         shaderProgram.use();
 
-        //bind texture
-        texture1.bind(1);
-        glUniform1i(glGetUniformLocation(shaderProgram.getProgram(), "texSampler1"), 1);
-
-
-        //set uniform for color with some fun
-        GLfloat time = (GLfloat) glfwGetTime();
-        GLfloat greenColor = (sin(time) / 2) + 0.5;
-        shaderProgram.setUniform("vertColor", glm::vec4(1.0f, greenColor, 0.0f, 1.0f));
-
-        //GLint vertexColorLocation = glGetUniformLocation(shaderProgram.getProgram(), "vertColor");
-        //glUniform4f(vertexColorLocation, 0.0f, greenColor, 0.0f, 0.0f);
-
-        //translating
-        if (transDirection)
-            offset += increment;
-        else
-            offset -= increment;
-
-        if (abs(offset) >= maxOffset) {
-            transDirection = !transDirection;
-        }
-
-        //rotation
-        curAngle += 0.5f;
-        if (curAngle >= 360)
-            curAngle -= 360;
-
-
-        //scale
-        if (sizeDirection)
-            curSize += 0.001f;
-        else
-            curSize -= 0.001f;
-
-        if (curSize >= maxSize || curSize <= minSize) {
-            sizeDirection = !sizeDirection;
-        }
-
-        cubeAngle -= (float) (deltatime * 50.0f);
-        if (cubeAngle >= 360)
-            cubeAngle = 0.0f;
-
-        //add transformation
-//        glm::mat4 transform = glm::mat4(1.0f);
-        glm::mat4 projection(1.0f), view(1.0f), model(1.0f);
-
-        //rotate the cube around it's center
-//        model = glm::translate(model, cubePos) *
-//                glm::rotate(model, glm::radians(cubeAngle), glm::vec3(0.0f, 1.0f, 0.0f));
-
-        model = glm::translate(model, cubePos);
-
-
-        //LookAt
-//        glm::vec3 camPos(0.0f, 0.0f, 0.0f);
-//        glm::vec3 targetPos(0.0f, 0.0f, -1.0f);
-//        glm::vec3 up(0.0f, 1.0f, 0.0f);
-
         //Create the view matrix
         view = fpsCamera.getViewMatrix();
 
-        //lookup matrix
-//        view = glm::lookAt(camPos, targetPos, up);
-
         //project matrix
-        projection = glm::perspective(glm::radians(fpsCamera.getFOV()), (float) gWindowHeight / (float) gWindowWidth,
+        projection = glm::perspective(glm::radians(fpsCamera.getFOV()), (float) gWindowWidth / (float) gWindowHeight,
                                       0.1f, 100.0f);
+
+        model = glm::mat4(1.0f);
 
         //pass the matrices to the shader
         shaderProgram.setUniform("model", model);
         shaderProgram.setUniform("view", view);
         shaderProgram.setUniform("projection", projection);
 
-//        transform = glm::scale(transform, glm::vec3(0.4f, 0.4f, 0.4f));
-//        transform = glm::translate(transform, glm::vec3(0.0f, 0.0f, 0.0f));
-//        transform = glm::rotate(transform, glm::radians(cubeAngle), glm::vec3(1.0f, 1.0f, 0.0f));
-//        shaderProgram.setUniform("transform", transform);
+        //bind texture
+        texture1.bind(0);
+        plane.draw();
+        texture1.unbind(0);
 
-        // draw scene as normal
-        CubeMapShader.use();
-        CubeMapShader.setUniform("model", model);
-        CubeMapShader.setUniform("view", view);
-        CubeMapShader.setUniform("projection", projection);
-        CubeMapShader.setUniform("cameraPos", fpsCamera.getPosition());
-        // cubes
-        glBindVertexArray(cubeVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
+        model = glm::translate(glm::mat4(1.0f), cursorPos) *
+                glm::scale(glm::mat4(1.0f), glm::vec3(cursorStrength / 10, 10.0f, cursorStrength / 10));
+
+        shaderProgram.setUniform("model", model);
+
+        if (!rayCast) {
+            cursorTex.bind(0);
+            cursor.draw();
+            cursorTex.unbind(0);
+        }
 
         // draw skybox as last
         glDepthFunc(
                 GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        skyboxShader.use();
+        /**/skyboxShader.use();
         view = glm::mat4(glm::mat3(fpsCamera.getViewMatrix())); // remove translation from the view matrix
         skyboxShader.setUniform("view", view);
         skyboxShader.setUniform("projection", projection);
@@ -425,19 +306,11 @@ int main() {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        /**/
+
         glBindVertexArray(0);
         glDepthFunc(GL_LESS); // set depth function back to default
-
-
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        //Create a Floor
-//        floorTexture.bind(0);
-//        model = glm::translate(model, floorPos) * glm::scale(model, glm::vec3(10.0f, 0.01f, 10.0f));
-//        shaderProgram.setUniform("model", model);
-//        glDrawArrays(GL_TRIANGLES, 0, 36);
-//        glBindVertexArray(0);
 
         // Swap front and back buffers
         glfwSwapBuffers(gWindow);
@@ -450,9 +323,6 @@ int main() {
     glDeleteVertexArrays(1, &skyboxVAO);
     glDeleteBuffers(1, &cubeVBO);
     glDeleteBuffers(1, &skyboxVBO);
-
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
 
     glfwTerminate();
     return 0;
@@ -534,41 +404,113 @@ void glfw_onFramebufferSize(GLFWwindow *window, int width, int height) {
 }
 
 void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY) {
-    double fov = fpsCamera.getFOV() + deltaY * ZOOM_SENSITIVITY;
-    fov = glm::clamp(fov, 1.0, 120.0);
-    fpsCamera.setFOV((float) fov);
+    float curStr = cursorStrength + deltaY * 0.1;
+
+    cursorStrength = glm::clamp(curStr, 0.5f, 5.0f);
 }
 
 void update(double elapsedTime) {
-    //camer orientation
+    //camera orientation
     double mouseX, mouseY;
-
-    //get current mouse cursor position delta
     glfwGetCursorPos(gWindow, &mouseX, &mouseY);
 
-    //rotate the camera using the dlta in mouse differences
-    fpsCamera.rotate(float(gWindowWidth / 2.0f - mouseX) * MOUSE_SENSETIVITY,
-                     float(gWindowHeight / 2.0f - mouseY) * MOUSE_SENSETIVITY);
+    glm::vec3 ray_nds = glm::vec3((2.0f * mouseX) / gWindowWidth - 1.0f, 1.0f - (2.0f * mouseY) / gWindowHeight, 1.0f);
+    glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+    glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+    ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+    glm::vec3 ray_wor = glm::vec3(glm::inverse(fpsCamera.getViewMatrix()) * ray_eye);
+    ray_wor = glm::normalize(ray_wor);
 
-    glfwSetCursorPos(gWindow, gWindowWidth / 2.0, gWindowHeight / 2.0);
+    glm::vec3 rayOrigin = fpsCamera.getPosition();
+    glm::vec3 rayDirection = ray_wor;
+
+    glm::vec3 planeNormal(0, 1, 0); // Assuming a horizontal plane
+
+
+    float planeD = 0; // Assuming the plane passes through the origin
+    float denom = glm::dot(planeNormal, rayDirection);
+
+    if (glfwGetKey(gWindow, GLFW_KEY_M) == GLFW_PRESS) {
+        if (!mKeyWasPressed) {
+            rayCast = !rayCast;
+            mKeyWasPressed = true;
+        }
+    } else {
+        mKeyWasPressed = false;
+    }
+
+    if (rayCast) {
+
+        if (std::abs(denom) > 1e-6) { // Ensure the ray is not parallel to the plane
+            glm::vec3 p0(0, planeD, 0); // A point on the plane
+            float t = glm::dot(p0 - rayOrigin, planeNormal) / denom;
+            glm::vec3 cursorPos3D = rayOrigin + t * rayDirection; // This is the 3D world position of the cursor
+
+            // Use cursorPos3D to manipulate the object
+            if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+                plane.modify(cursorPos3D, cursorStrength * (float) elapsedTime);
+            } else if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+                plane.modify(cursorPos3D, cursorStrength * (float) elapsedTime, false);
+            }
+        }
+    }
+
+//        get current mouse cursor position delta
+
+    if (!rayCast) {
+        if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            plane.modify(cursorPos, cursorStrength * (float) elapsedTime);
+        } else if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+            plane.modify(cursorPos, cursorStrength * (float) elapsedTime, false);
+        }
+    }
+
+    if (glfwGetKey(gWindow, GLFW_KEY_R) == GLFW_PRESS) {
+        //rotate the camera using the dlta in mouse differences
+        fpsCamera.rotate(
+                float(gWindowWidth / 2.0f - mouseX) * MOUSE_SENSETIVITY,
+                float(gWindowHeight / 2.0f - mouseY) * MOUSE_SENSETIVITY
+        );
+
+        glfwSetCursorPos(gWindow, gWindowWidth / 2.0, gWindowHeight / 2.0);
+    }
+
+    glm::vec3
+            flatUp(0.0f, 1.0f, 0.0f),
+            flatLook(fpsCamera.getLook().x, 0.0, fpsCamera.getLook().z),
+            flatRight(fpsCamera.getRight().x, 0.0, fpsCamera.getRight().z);
+
+    if (!rayCast) {
+        if (glfwGetKey(gWindow, GLFW_KEY_LEFT) == GLFW_PRESS) {
+            cursorPos -= (float) elapsedTime * flatRight;
+        } else if (glfwGetKey(gWindow, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+            cursorPos += (float) elapsedTime * flatRight;
+        }
+
+        if (glfwGetKey(gWindow, GLFW_KEY_UP) == GLFW_PRESS) {
+            cursorPos += (float) elapsedTime * flatLook;
+        } else if (glfwGetKey(gWindow, GLFW_KEY_DOWN) == GLFW_PRESS) {
+            cursorPos -= (float) elapsedTime * flatLook;
+        }
+    }
 
     //camera move forwad backword
     if (glfwGetKey(gWindow, GLFW_KEY_W) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * fpsCamera.getLook());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * flatLook);
     else if (glfwGetKey(gWindow, GLFW_KEY_S) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -fpsCamera.getLook());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -flatLook);
 
     //left right
     if (glfwGetKey(gWindow, GLFW_KEY_A) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -fpsCamera.getRight());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -flatRight);
     else if (glfwGetKey(gWindow, GLFW_KEY_D) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * fpsCamera.getRight());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * flatRight);
 
     //up down
     if (glfwGetKey(gWindow, GLFW_KEY_Z) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * fpsCamera.getUp());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * flatUp);
     else if (glfwGetKey(gWindow, GLFW_KEY_X) == GLFW_PRESS)
-        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -fpsCamera.getUp());
+        fpsCamera.move((float) MOVE_SPEED * (float) elapsedTime * -flatUp);
 }
 
 //-----------------------------------------------------------------------------
