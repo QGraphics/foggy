@@ -1,12 +1,12 @@
 #version 330 core
 out vec4 frag_color;
-out vec2 gsTexCoord;
+in vec2 gsTexCoord;
 in vec2 TexCoord;
 in vec2 fragPosition;
 
 uniform vec4 vertColor;
 uniform sampler2D texSampler;
-uniform sampler2D texSampler1;
+//uniform sampler2D texSampler1;
 uniform vec2 cursorPosition;
 uniform float cursorRadius;
 uniform bool rayCast;
@@ -30,7 +30,8 @@ void main()
 ////            frag_color = vec4(1.0, 0.0, 0.0, 1.0);
 //        }
 //        else {
-            frag_color = texture(texSampler1, gsTexCoord);
+
+            frag_color = texture(texSampler, gsTexCoord);
 //        }
 
 

@@ -23,7 +23,6 @@ public:
     unsigned int loadCubemap(vector <std::string> faces);
     void unbind(GLuint texUnit = 0);
 
-private:
     GLuint mTexture;
 //    string mFilename;
 

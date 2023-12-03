@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include<unistd.h>
+#include <fstream>
 
 #define GLEW_STATIC
 
@@ -97,6 +98,7 @@ int main() {
     ShaderProgram skyboxShader;
     skyboxShader.loadShaders("../assets/shaders/skybox.vert", "../assets/shaders/skybox.frag");
 
+
     float cubeVertices[] = {
             // positions          // normals
             -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -1.0f,
@@ -187,7 +189,7 @@ int main() {
     };
 
     // Generate the Plane
-    plane.generatePlane(100, PLANE_WIDTH);
+    plane.generatePlane(250, PLANE_WIDTH);
 
     //Create the cursor
     Mesh cursor;
@@ -242,12 +244,72 @@ int main() {
     //call shaders
     ShaderProgram shaderProgram;
     shaderProgram.loadShaders("../assets/shaders/transform.vert", "../assets/shaders/transform.frag");
+    int geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+    const char *gsFilename = "../assets/shaders/grass.geom";
+    std::stringstream ss;
+    std::ifstream file;
+
+    try {
+        file.open(gsFilename, std::ios::in);
+
+        if (!file.fail()) {
+            // Using a std::stringstream is easier than looping through each line of the file
+            ss << file.rdbuf();
+        }
+
+        file.close();
+    }
+    catch (std::exception ex) {
+        std::cerr << "Error reading shader filename!" << std::endl;
+    }
+    string s = ss.str();
+    const char *gsSourcePtr = s.c_str();
+    glShaderSource(geometryShader, 1, &gsSourcePtr, NULL);
+    glCompileShader(geometryShader);
+    int status = 0;
+    glGetShaderiv(geometryShader, GL_COMPILE_STATUS, &status);
+    if (status == GL_FALSE) {
+        GLint length = 0;
+        glGetShaderiv(geometryShader, GL_INFO_LOG_LENGTH, &length);
+
+        // The length includes the NULL character
+        string errorLog(length, ' ');  // Resize and fill with space character
+        glGetShaderInfoLog(geometryShader, length, &length, &errorLog[0]);
+        std::cerr << "Error! Shader failed to compile. " << errorLog << std::endl;
+    }
+
+    glAttachShader(shaderProgram.getProgram(), geometryShader);
+    glLinkProgram(shaderProgram.getProgram());
+    glGetProgramiv(shaderProgram.getProgram(), GL_LINK_STATUS, &status);
+    if (status == GL_FALSE) {
+        GLint length = 0;
+        glGetProgramiv(shaderProgram.getProgram(), GL_INFO_LOG_LENGTH, &length);
+
+        // The length includes the NULL character
+        string errorLog(length, ' ');    // Resize and fill with space character
+        glGetProgramInfoLog(shaderProgram.getProgram(), length, &length, &errorLog[0]);
+        std::cerr << "Error! Shader program failed to link. " << errorLog << std::endl;
+    }
+
+    glDeleteShader(geometryShader);
+
 
     //****** Texture ******
     Texture texture1;
-    texture1.loadTexture("../assets/images/floortext.jpg", true);
+    texture1.loadTexture("../assets/textures/skybox/bottom.jpg", true);
 
     double lastTime = glfwGetTime();
+
+    GLuint fbo;
+    glGenFramebuffers(1, &fbo);
+    Texture grassTexture;
+    grassTexture.loadTexture("../assets/images/grass.jpg", true);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, grassTexture.mTexture, 0);
+    // Check if the FBO is complete
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        // Handle FBO incomplete error
+        std::cerr << "Framebuffer is not complete!" << std::endl;
+    }
 
     // Rendering loop
     while (!glfwWindowShouldClose(gWindow)) {
@@ -262,6 +324,25 @@ int main() {
 
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUseProgram(shaderProgram.getProgram());
+        glEnable(GL_GEOMETRY_SHADER);
+
+// Bind the framebuffer for rendering
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+// Set the viewport to match the texture size
+        glViewport(0, 0, 4500, 4500);
+
+// Render your grass geometry (VBO) using the geometry shader
+
+// Disable the geometry shader
+        glDisable(GL_GEOMETRY_SHADER);
+
+// Unbind the framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+// Restore the viewport to the default size
+        glViewport(0, 0, gWindowWidth, gWindowHeight);
 
         // Render the quad (two triangles)
         shaderProgram.use();
@@ -288,7 +369,9 @@ int main() {
 
         //bind texture
         texture1.bind(0);
+        grassTexture.bind(1);
         plane.draw();
+        grassTexture.unbind(1);
         texture1.unbind(0);
 
         model = glm::translate(glm::mat4(1.0f), cursorPos) *
@@ -305,16 +388,16 @@ int main() {
         // draw skybox as last
         glDepthFunc(
                 GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-////        /**/skyboxShader.use();
-//        view = glm::mat4(glm::mat3(fpsCamera.getViewMatrix())); // remove translation from the view matrix
-//        skyboxShader.setUniform("view", view);
-//        skyboxShader.setUniform("projection", projection);
-//        // skybox cube
-//        glBindVertexArray(skyboxVAO);
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-//        glDrawArrays(GL_TRIANGLES, 0, 36);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        /**/skyboxShader.use();
+        view = glm::mat4(glm::mat3(fpsCamera.getViewMatrix())); // remove translation from the view matrix
+        skyboxShader.setUniform("view", view);
+        skyboxShader.setUniform("projection", projection);
+        // skybox cube
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         /**/
 
         glBindVertexArray(0);
@@ -415,7 +498,7 @@ void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY) {
     float curStr = cursorStrength + deltaY * 0.1;
 
     cursorStrength = glm::clamp(curStr, 0.5f, 5.0f);
-    cursorRadius = cursorStrength/2;
+    cursorRadius = cursorStrength / 2;
 }
 
 void update(double elapsedTime) {
@@ -461,8 +544,6 @@ void update(double elapsedTime) {
             } else if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
                 plane.modify(cursorPos3D, cursorStrength * (float) elapsedTime, false);
             }
-
-
 
 
         }
