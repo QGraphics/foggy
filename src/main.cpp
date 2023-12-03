@@ -56,6 +56,8 @@ glm::vec3 cursorPos(0.0f, 0.0f, 0.0f); // This isn't the mouse cursor, but rathe
 Mesh plane;
 float cursorStrength = 1.0f;
 float PLANE_WIDTH = 60.0f;
+glm::vec3 cursorPos3D;
+float cursorRadius = 0.1f;
 
 // Function prototypes
 void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY);
@@ -277,6 +279,12 @@ int main() {
         shaderProgram.setUniform("model", model);
         shaderProgram.setUniform("view", view);
         shaderProgram.setUniform("projection", projection);
+        glm::vec2 cursorPos2D = glm::vec2(cursorPos3D.x, cursorPos3D.y);
+        shaderProgram.setUniform("cursorPosition", cursorPos2D);
+        shaderProgram.setUniform("rayCast", rayCast);
+        shaderProgram.setUniform("cursorRadius", cursorRadius);
+
+
 
         //bind texture
         texture1.bind(0);
@@ -297,16 +305,16 @@ int main() {
         // draw skybox as last
         glDepthFunc(
                 GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        /**/skyboxShader.use();
-        view = glm::mat4(glm::mat3(fpsCamera.getViewMatrix())); // remove translation from the view matrix
-        skyboxShader.setUniform("view", view);
-        skyboxShader.setUniform("projection", projection);
-        // skybox cube
-        glBindVertexArray(skyboxVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+////        /**/skyboxShader.use();
+//        view = glm::mat4(glm::mat3(fpsCamera.getViewMatrix())); // remove translation from the view matrix
+//        skyboxShader.setUniform("view", view);
+//        skyboxShader.setUniform("projection", projection);
+//        // skybox cube
+//        glBindVertexArray(skyboxVAO);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+//        glDrawArrays(GL_TRIANGLES, 0, 36);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         /**/
 
         glBindVertexArray(0);
@@ -407,6 +415,7 @@ void glfw_onMouseScroll(GLFWwindow *window, double deltaX, double deltaY) {
     float curStr = cursorStrength + deltaY * 0.1;
 
     cursorStrength = glm::clamp(curStr, 0.5f, 5.0f);
+    cursorRadius = cursorStrength/2;
 }
 
 void update(double elapsedTime) {
@@ -444,7 +453,7 @@ void update(double elapsedTime) {
         if (std::abs(denom) > 1e-6) { // Ensure the ray is not parallel to the plane
             glm::vec3 p0(0, planeD, 0); // A point on the plane
             float t = glm::dot(p0 - rayOrigin, planeNormal) / denom;
-            glm::vec3 cursorPos3D = rayOrigin + t * rayDirection; // This is the 3D world position of the cursor
+            cursorPos3D = rayOrigin + t * rayDirection; // This is the 3D world position of the cursor
 
             // Use cursorPos3D to manipulate the object
             if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -452,6 +461,10 @@ void update(double elapsedTime) {
             } else if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
                 plane.modify(cursorPos3D, cursorStrength * (float) elapsedTime, false);
             }
+
+
+
+
         }
     }
 
