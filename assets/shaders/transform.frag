@@ -30,7 +30,7 @@ void main()
 ////            frag_color = vec4(1.0, 0.0, 0.0, 1.0);
 //        }
 //        else {
-            frag_color = texture(texSampler1, gsTexCoord);
+            frag_color = texture(texSampler1, TexCoord);
 //        }
 
 

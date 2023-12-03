@@ -245,7 +245,7 @@ int main() {
 
     //****** Texture ******
     Texture texture1;
-    texture1.loadTexture("../assets/images/floortext.jpg", true);
+    texture1.loadTexture("../assets/images/dirt22.jpg", true);
 
     double lastTime = glfwGetTime();
 
