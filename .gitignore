@@ -9,6 +9,7 @@
 # Precompiled Headers
 *.gch
 *.pch
+*.ipch
 
 # Compiled Dynamic libraries
 *.so
@@ -33,3 +34,6 @@
 # cmake build folder
 cmake-build-debug/
 .idea/
+
+# VS files
+.vs/
