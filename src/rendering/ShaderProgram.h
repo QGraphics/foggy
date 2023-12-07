@@ -37,6 +37,7 @@ public:
     void setUniform(const GLchar* name, const glm::mat4& m);
     void setUniform(const GLchar* name, const GLfloat f);
     void setUniform(const GLchar* name, const bool i);
+    void setUniformSampler(const GLchar* name, const GLuint textureID);
 
 
 
@@ -45,7 +46,7 @@ private:
     string fileToString(const string& filename);
     void  checkCompileErrors(GLuint shader, ShaderType type);
     // We are going to speed up looking for uniforms by keeping their locations in a map
-    GLint getUniformLocation(const GLchar * name);
+    GLint getUniformLocation(const GLchar* name);
 
     GLuint mHandle;
     std::map<string, GLint> mUniformLocations;

@@ -326,16 +326,29 @@ std::vector<GLuint> Mesh::getPlaneIds(int div)
 
 void Mesh::modify(glm::vec3 position, float strength, bool up)
 {
-	int sign = (up) ? 1 : -1;
+	int sign = up ? 1 : -1;
 
 	for (int i = 0; i < mVertices.size(); i++)
 	{
 		float distance = glm::length(glm::vec3(mVertices[i].position.x, 0.0f, mVertices[i].position.z) - position);
-		
+
 		if (distance < 5)
 		{
 			mVertices[i].position.y += sign * strength * gaussian(distance, 1) / 10;
 			//std::cout << mVertices[i].position.y << std::endl;
+		}
+
+		if ((i + 1) % 3 == 0)
+		{
+			glm::vec3
+				oneToTwo = mVertices[i - 1].position - mVertices[i - 2].position,	//	  1
+				twoToThree = mVertices[i].position - mVertices[i - 1].position,		//  / |
+				threeToOne = mVertices[i - 2].position - mVertices[i].position		// 2--3
+				;
+
+			mVertices[i].normal = glm::cross(twoToThree, threeToOne);
+			mVertices[i - 1].normal = glm::cross(twoToThree, -oneToTwo);
+			mVertices[i - 2].normal = glm::cross(oneToTwo, -threeToOne);
 		}
 	}
 
